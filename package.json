@@ -1,0 +1,26 @@
+{
+  "name": "react-redux-universal-resolver",
+  "version": "0.1.0",
+  "description": "Yet another redux based HOC to support universal async rendering.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tarabyte/react-redux-universal-resolver.git"
+  },
+  "keywords": [
+    "react",
+    "redux",
+    "HOC",
+    "universal",
+    "async"
+  ],
+  "author": "Yury Tarabanko",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Tarabyte/react-redux-universal-resolver/issues"
+  },
+  "homepage": "https://github.com/Tarabyte/react-redux-universal-resolver#readme"
+}
