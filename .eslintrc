@@ -8,5 +8,9 @@
   "parser": "babel-eslint",
   "rules": {
     "comma-dangle": 0 // Airbnb, why?!!
+  },
+  "globals": {
+    "expect": true,
+    "sinon": true
   }
 }

@@ -1,16 +1,17 @@
 const path = require('path');
-const src = path.join(__dirname, '..', 'src');
+const src = path.join(__dirname, 'src');
 
 module.exports = {
   devtool: 'eval',
+  debug: true,
   resolve: {
-    extensions: ['', '.js']
+    extensions: ['', '.js', '.jsx']
   },
   module: {
     preLoaders: [
       {
         test: /\.(js|jsx)$/,
-        loader: 'isparta-instrumenter-loader',
+        loader: 'isparta-instrumenter',
         include: [
           src
         ],
@@ -20,11 +21,12 @@ module.exports = {
     loaders: [
       {
         test: /\.(js|jsx)$/,
-        loader: 'babel-loader',
+        loader: 'babel',
         include: [
           src
         ]
       }
     ]
   },
+  plugins: []
 };
