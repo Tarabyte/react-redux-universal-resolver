@@ -1,4 +1,4 @@
-import reducer from './reducer';
+import reducer from './utils/reducer';
 export const KEY = '@@resolve';
 export const RESOLVE_START = `${KEY}/start`;
 export const RESOLVE_RESOLVED = `${KEY}/resolved`;

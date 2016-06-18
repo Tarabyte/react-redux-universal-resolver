@@ -1,8 +1,8 @@
 import React, { Component, PropTypes } from 'react';
 import { connect } from 'react-redux';
 import shallowequal from 'shallowequal';
-import { start, resolve, reject } from './redux/ducks';
-import latest from './latest';
+import { start, resolve, reject } from './ducks';
+import latest from './utils/latest';
 
 const { any, bool, object, func } = PropTypes;
 
