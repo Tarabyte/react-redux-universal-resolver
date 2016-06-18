@@ -3,7 +3,7 @@ const webpackConfig = require('./webpack.conf');
 module.exports = config => {
   config.set({
     basePath: '',
-    browsers: ['Chrome'],
+    browsers: ['Chrome', 'Firefox'],
     files: [
       'test/load-tests.js'
     ],

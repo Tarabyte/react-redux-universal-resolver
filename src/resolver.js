@@ -3,52 +3,77 @@ import { connect } from 'react-redux';
 import shallowequal from 'shallowequal';
 import { start, resolve, reject } from './ducks';
 import latest from './utils/latest';
+import invariant from 'invariant';
 
 const { any, bool, object, func } = PropTypes;
 
-const isFunction = x => typeof x === 'function';
 const defaultMapStateToParams = (state, ownProps) => ownProps.params;
 const defaultMapRouteToParams = (state, routeProps) => routeProps.params;
-const makeMapParamsToPromises = hash => params =>
-  Object.keys(hash).reduce((acc, key) => Object.assign(acc, { key: hash[key](params) }), {});
+const defaultSlice = state => state.resolver;
+const extract = value => {
+  if (value != null) {
+    /* istanbul ignore else */
+    if (value.resolving) {
+      return value.promise;
+    } else if (value.rejected) {
+      return value.error;
+    } else if (value.resolved) {
+      return value.result;
+    }
+    // sanity check failed :)
+    /* istanbul ignore next */
+    invariant(false,
+      'Inconsistent state. Value should be either resolving, resolved, or rejected.');
+  }
 
-const flatten = (components) => (Array.isArray(components) ? components : [components])
-  .reduce((acc, component) => acc.concat(typeof component === 'object'
-      ? Object.keys(component).reduce((prev, key) => prev.concat(component[key]), [])
-      : component),
-  []);
+  return null;
+};
 
-export const resolveOnServer = (components, ...args) => {
-  const pending = flatten(components)
-    .filter(component => isFunction(component.resolveOnServer))
-    .map(component => component.resolveOnServer(...args));
+const makeMapParamsToPromises = hash => {
+  const promiseThunks = Object.keys(hash).map(key => {
+    const fn = hash[key];
+    return (acc, params) => Object.assign(acc, { [key]: fn(params) });
+  });
 
-  return Promise.all(pending);
+  return params => promiseThunks.reduce((acc, thunk) => thunk(acc, params), {});
 };
 
 export default (mapParamsToPromises,
                 mapStateToParams = defaultMapStateToParams,
-                mapRouteToParams = defaultMapRouteToParams) =>
-  (Fulfilled, Rejected, Pending) => {
-    const finalMapParamsToPromises =
-      isFunction(mapParamsToPromises)
-      ? mapParamsToPromises
-      : makeMapParamsToPromises(mapParamsToPromises);
+                mapRouteToParams = defaultMapRouteToParams) => {
+  invariant(typeof mapParamsToPromises === 'object' && !Array.isArray(mapParamsToPromises),
+    'Expecting mapParamsToPromises to be an object. Got %s instead.', typeof mapParamsToPromises);
 
+  invariant(mapParamsToPromises,
+    'Expecting mapParamsToPromises to be not null. Got %s instead', mapParamsToPromises);
 
+  invariant(typeof mapStateToParams === 'function',
+    'Expecting mapStateToParams to be a function. Got %s instead', typeof mapStateToParams);
+
+  invariant(typeof mapRouteToParams === 'function',
+    'Expecting mapRouteToParams to be a function. Got %s instead', typeof mapRouteToParams);
+
+  return (Fulfilled, Rejected, Pending) => {
+    const keys = Object.keys(mapParamsToPromises);
+    const finalMapParamsToPromises = makeMapParamsToPromises(mapParamsToPromises);
+    const dispatchLatest = latest();
     const mapStateToProps = (state, ownProps) => {
       const resolveParams = mapStateToParams(state, ownProps);
-      const keys = Object.keys(finalMapParamsToPromises(resolveParams));
-      const stateSlice = state.resolver;
+      const stateSlice = (ownProps.slice || defaultSlice)(state);
+
+      invariant(stateSlice,
+       `Expecting state.resolver to be an object.
+       If you use different name please provide slice function
+       to map resolver state from global state object.`);
+
       const is = what => key => stateSlice[key] && stateSlice[key][what];
 
       const resolved = keys.every(is('resolved'));
       const rejected = keys.some(is('rejected'));
       const pending = !(resolved || rejected);
 
-      const extract = is(rejected ? 'error' : 'result');
       // eslint-disable-next-line no-sequences, no-param-reassign, no-return-assign
-      const result = keys.reduce((acc, key) => (acc[key] = extract(key), acc), {});
+      const result = keys.reduce((acc, key) => (acc[key] = extract(stateSlice[key]), acc), {});
 
       return {
         resolveParams,
@@ -58,8 +83,6 @@ export default (mapParamsToPromises,
         result
       };
     };
-
-    const dispatchLatest = latest();
 
     const resolvePromises = (params, dispatch) => {
       const promises = finalMapParamsToPromises(params);
@@ -85,15 +108,42 @@ export default (mapParamsToPromises,
 
     class Resolver extends Component {
       static propTypes = {
+        /**
+         * Params required to compose promises to resolve.
+         * For example current instance id to fetch that comes from router params
+         */
         resolveParams: any.isRequired,
+
+        /**
+         * Wheater all promises are resolved
+         */
         resolved: bool.isRequired,
+
+        /**
+         * If any promise is still pending
+         */
         pending: bool.isRequired,
+
+        /**
+         * If any promise were rejected
+         */
         rejected: bool.isRequired,
+
+        /**
+         * Hash of promises result
+         */
         result: object,
+
+        /**
+         * Redux store dispatch
+         */
         dispatch: func.isRequired
       };
 
       static resolveOnServer(state, routeProps, dispatch) {
+        invariant(typeof dispatch === 'function',
+          'Expecting dispatch to be a function. Got %s instead.', typeof dispatch);
+        
         const resolveParams = mapRouteToParams(state, routeProps);
         return resolvePromises(resolveParams, dispatch);
       }
@@ -114,6 +164,10 @@ export default (mapParamsToPromises,
         }
       }
 
+      shouldComponentUpdate(nextProps) {
+        return this.props.pending !== nextProps.pending;
+      }
+
       render() {
         const {
           resolved,
@@ -123,7 +177,7 @@ export default (mapParamsToPromises,
         } = this.props;
 
         if (pending && Pending) {
-          return <Pending {...result} />;
+          return <Pending />;
         } else if (rejected && Rejected) {
           return <Rejected {...result} />;
         } else if (resolved) {
@@ -136,3 +190,4 @@ export default (mapParamsToPromises,
 
     return connect(mapStateToProps)(Resolver);
   };
+};
