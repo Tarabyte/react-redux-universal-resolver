@@ -11,7 +11,8 @@
     "relint": "esw ./src -w --parser babel-eslint",
     "dev": "concurrent --kill-others \"npm run tdd\" \"npm run relint\"",
     "clean": "rimraf lib coverage",
-    "build": "babel src --ignore \"*-spec.js\" --out-dir lib"
+    "build": "babel src --ignore \"*-spec.js\" --out-dir lib",
+    "prepublish": "npm run clean && npm run build"
   },
   "repository": {
     "type": "git",
