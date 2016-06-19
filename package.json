@@ -25,7 +25,7 @@
     "universal",
     "async"
   ],
-  "author": "Yury Tarabanko",
+  "author": "Yury Tarabanko <tarabanko.yury@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/Tarabyte/react-redux-universal-resolver/issues"
