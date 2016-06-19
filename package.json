@@ -68,5 +68,9 @@
   "dependencies": {
     "invariant": "^2.2.1",
     "shallowequal": "^0.2.2"
+  },
+  "peerDependencies": {
+    "react": "^15.1.0",
+    "react-redux": "^4.4.5"
   }
 }
