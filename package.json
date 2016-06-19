@@ -2,14 +2,16 @@
   "name": "react-redux-universal-resolver",
   "version": "0.1.0",
   "description": "Yet another redux based HOC to support universal async rendering.",
-  "main": "index.js",
+  "main": "./lib/index.js",
   "scripts": {
     "test": "karma start",
     "posttest": "npm run lint",
     "lint": "eslint -c .eslintrc src",
     "tdd": "karma start --autoWatch=true --singleRun=false",
     "relint": "esw ./src -w --parser babel-eslint",
-    "dev": "concurrent --kill-others \"npm run tdd\" \"npm run relint\""
+    "dev": "concurrent --kill-others \"npm run tdd\" \"npm run relint\"",
+    "clean": "rimraf lib coverage",
+    "build": "babel src --ignore \"*-spec.js\" --out-dir lib"
   },
   "repository": {
     "type": "git",
@@ -29,6 +31,7 @@
   },
   "homepage": "https://github.com/Tarabyte/react-redux-universal-resolver#readme",
   "devDependencies": {
+    "babel-cli": "^6.10.1",
     "babel-core": "^6.9.1",
     "babel-eslint": "^6.0.4",
     "babel-loader": "^6.2.4",
@@ -61,6 +64,7 @@
     "react-addons-test-utils": "^15.1.0",
     "react-redux": "^4.4.5",
     "redux": "^3.5.2",
+    "rimraf": "^2.5.2",
     "webpack": "^1.13.1",
     "webpack-dev-server": "^1.14.1"
   },
