@@ -143,7 +143,7 @@ export default (mapParamsToPromises,
       static resolveOnServer(state, routeProps, dispatch) {
         invariant(typeof dispatch === 'function',
           'Expecting dispatch to be a function. Got %s instead.', typeof dispatch);
-        
+
         const resolveParams = mapRouteToParams(state, routeProps);
         return resolvePromises(resolveParams, dispatch);
       }
