@@ -34,7 +34,7 @@ It all sounds like a lot of boilerplate code to write. And in fact it is. That's
 - Reduce serverside data prefetching to a single function call.
 - Eliminate
   - Requirement for manual `componentDidMount` implementation.
-  - Clientside fetching orchestration.
+  - Manual clientside fetching orchestration.
 - Use redux store as the only source of state.
 - Tests :lol:.
 
@@ -47,7 +47,7 @@ Assuming you have node and npm installed (not publish yet)
 
 ## Docs
 - [API](docs/API.md)
- - [`resolver(mapParamsToPromises, [mapStateToParams], [mapRouteToParams])`](docs/API.md#resolver)
+ - [`resolver(mapParamsToPromises, [mapStateToParams], [mapRouteToParams], [options])`](docs/API.md#resolver)
  - [`resolveOnServer(components, state, routeProps, dispatch)`](docs/API.md#resolveOnServer)
 - [Usage](docs/EXAMPLE.md)
 

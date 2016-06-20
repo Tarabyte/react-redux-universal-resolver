@@ -4,11 +4,17 @@ import shallowequal from 'shallowequal';
 import { start, resolve, reject } from './ducks';
 import latest from './utils/latest';
 import invariant from 'invariant';
+import hoistStatics from 'hoist-non-react-statics';
 
 const { any, bool, object, func } = PropTypes;
 
 const defaultMapStateToParams = (state, ownProps) => ownProps.params;
 const defaultMapRouteToParams = (state, routeProps) => routeProps.params;
+const isObject = test => test && typeof test === 'object' && !Array.isArray(test);
+const defaultOptions = {
+  pure: true,
+  hoistNonReactStatics: true
+};
 const defaultSlice = state => state.resolver;
 const extract = value => {
   if (value != null) {
@@ -40,18 +46,24 @@ const makeMapParamsToPromises = hash => {
 
 export default (mapParamsToPromises,
                 mapStateToParams = defaultMapStateToParams,
-                mapRouteToParams = defaultMapRouteToParams) => {
-  invariant(typeof mapParamsToPromises === 'object' && !Array.isArray(mapParamsToPromises),
-    'Expecting mapParamsToPromises to be an object. Got %s instead.', typeof mapParamsToPromises);
+                mapRouteToParams = defaultMapRouteToParams,
+                options = {}) => {
+  invariant(isObject(mapParamsToPromises),
+    'Expecting mapParamsToPromises to be an object. Got %s instead.', mapParamsToPromises);
 
   invariant(mapParamsToPromises,
     'Expecting mapParamsToPromises to be not null. Got %s instead', mapParamsToPromises);
 
   invariant(typeof mapStateToParams === 'function',
-    'Expecting mapStateToParams to be a function. Got %s instead', typeof mapStateToParams);
+    'Expecting mapStateToParams to be a function. Got %s instead', mapStateToParams);
 
   invariant(typeof mapRouteToParams === 'function',
-    'Expecting mapRouteToParams to be a function. Got %s instead', typeof mapRouteToParams);
+    'Expecting mapRouteToParams to be a function. Got %s instead', mapRouteToParams);
+
+  invariant(isObject(options),
+    'Expecting options to be an object. Got %s instead.', options);
+
+  const finalOptions = { ...defaultOptions, ...options };
 
   return (Fulfilled, Rejected, Pending) => {
     const keys = Object.keys(mapParamsToPromises);
@@ -93,18 +105,25 @@ export default (mapParamsToPromises,
         .keys(promises)
         .map(key => {
           const promise = promises[key];
-          dispatch(start(key, promise));
+          if (promise && typeof promise.then === 'function') {
+            dispatch(start(key, promise));
 
-          promise.then(
-            result => dispatch(resolve(key, result)),
-            error => dispatch(reject(key, error))
-          );
+            promise.then(
+              result => dispatch(resolve(key, result)),
+              error => dispatch(reject(key, error))
+            );
+          } else {
+            dispatch(resolve(key, promise));
+          }
 
           return promise;
         });
 
       return Promise.all(pending);
     };
+
+    const { pure, hoistNonReactStatics } = finalOptions;
+    const impure = !pure;
 
     class Resolver extends Component {
       static propTypes = {
@@ -165,7 +184,7 @@ export default (mapParamsToPromises,
       }
 
       shouldComponentUpdate(nextProps) {
-        return this.props.pending !== nextProps.pending;
+        return impure || this.props.pending !== nextProps.pending;
       }
 
       render() {
@@ -186,6 +205,17 @@ export default (mapParamsToPromises,
 
         return null;
       }
+    }
+
+    if (hoistNonReactStatics) {
+      hoistStatics(Resolver, Fulfilled);
+    }
+
+    if (impure) {
+      // say connect we have impure component inside
+      return connect(mapStateToProps, undefined, undefined, {
+        pure: false
+      })(Resolver);
     }
 
     return connect(mapStateToProps)(Resolver);

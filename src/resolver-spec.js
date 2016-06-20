@@ -264,7 +264,103 @@ describe('Resolver', () => {
     });
   });
 
-  describe('invariants', () => {
+  describe('Impure rendering', () => {
+    it('should always rerender once pure:false was specified', () => {
+      const pending = sinon.stub().returns(null);
+      const Wrapped = resolver({
+        1: () => delay(10, 1),
+        2: () => delay(20, 2),
+        3: () => delay(30, 3)
+      })(() => null, undefined, pending);
+
+      const store = makeStore();
+
+      const component = (
+        <Provider store={store}>
+          <Wrapped params={{}} />
+        </Provider>
+      );
+
+      TestUtils.renderIntoDocument(component);
+
+      return delay(40).then(() => {
+        pending.calledOnce.should.be.true;
+      });
+    });
+    it('should always rerender if pure:false was specified', () => {
+      const pending = sinon.stub().returns(null);
+      const Wrapped = resolver({
+        1: () => delay(10, 1),
+        2: () => delay(20, 2),
+        3: () => delay(30, 3)
+      }, undefined, undefined, {
+        pure: false
+      })(() => null, undefined, pending);
+
+      const store = makeStore();
+
+      const component = (
+        <Provider store={store}>
+          <Wrapped params={{}} />
+        </Provider>
+      );
+
+      TestUtils.renderIntoDocument(component);
+
+      return delay(40).then(() => {
+        // initial rendering + 1 on each resolve
+        pending.args.should.have.length(3 + 1);
+      });
+    });
+  });
+
+  describe('Statics hoist', () => {
+    it('should hoist non react statics', () => {
+      const cmp = () => null;
+      cmp.testStaticHoisting = {};
+
+      const Wrapped = resolver({})(cmp);
+
+      Wrapped.should.have.property('testStaticHoisting', cmp.testStaticHoisting);
+    });
+
+    it('should NOT hoist statics if options tells no to do so', () => {
+      const cmp = () => null;
+      cmp.testStaticHoisting = {};
+
+      const Wrapped = resolver({}, undefined, undefined, {
+        hoistNonReactStatics: false
+      })(cmp);
+
+      Wrapped.should.not.have.property('testStaticHoisting');
+    });
+  });
+
+  describe('Non Promise values', () => {
+    it('should allow to return non-promise values', () => {
+      const cmp = sinon.stub().returns(null);
+
+      const Wrapped = resolver({
+        1: () => 1,
+        2: () => ({ 2: 2 }),
+        3: () => null
+      })(cmp);
+      const store = makeStore();
+
+      const component = (
+        <Provider store={store}>
+          <Wrapped params={{}} />
+        </Provider>
+      );
+
+      TestUtils.renderIntoDocument(component);
+
+      cmp.calledOnce.should.be.true;
+      cmp.args[0][0].should.be.deep.equal({ 1: 1, 2: { 2: 2 }, 3: null });
+    });
+  });
+
+  describe('Invariants', () => {
     it('should throw when called w/o mapParamsToPromises', () => {
       expect(() => resolver()).to.throw(/mapParamsToPromises/);
     });
@@ -283,6 +379,10 @@ describe('Resolver', () => {
 
     it('should throw when custom mapRouteToParams is not a function', () => {
       expect(() => resolver({}, undefined, {})).to.throw(/mapRouteToParams/);
+    });
+
+    it('should throw when options is not an object', () => {
+      expect(() => resolver({}, undefined, undefined, 5)).to.throw(/options/);
     });
   });
 

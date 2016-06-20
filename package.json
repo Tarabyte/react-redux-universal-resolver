@@ -70,6 +70,7 @@
     "webpack-dev-server": "^1.14.1"
   },
   "dependencies": {
+    "hoist-non-react-statics": "^1.2.0",
     "invariant": "^2.2.1",
     "shallowequal": "^0.2.2"
   },
