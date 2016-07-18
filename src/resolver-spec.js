@@ -139,7 +139,8 @@ describe('Resolver', () => {
           cmp.calledOnce.should.be.true;
           cmp.args[0][0].should.be.deep.equal({
             stub1: 1,
-            stub2: 2
+            stub2: 2,
+            params
           });
           unsub();
           done();
@@ -356,7 +357,100 @@ describe('Resolver', () => {
       TestUtils.renderIntoDocument(component);
 
       cmp.calledOnce.should.be.true;
-      cmp.args[0][0].should.be.deep.equal({ 1: 1, 2: { 2: 2 }, 3: null });
+
+      const props = cmp.args[0][0];
+
+      props.should.have.property(1, 1);
+      props.should.have.property(3, null);
+      props.should.have.property(2)
+        .that.is.deep.equal({
+          2: 2
+        });
+    });
+  });
+
+  describe('Merge Own Properties', () => {
+    it('should set own properties to wrapped component', () => {
+      const cmp = sinon.stub().returns(null);
+
+      const Wrapped = resolver({
+        1: () => 1,
+        2: () => 2
+      })(cmp);
+      const store = makeStore();
+
+      const component = (
+        <Provider store={store}>
+          <Wrapped params={{ test: 1 }} three="3" />
+        </Provider>
+      );
+
+      TestUtils.renderIntoDocument(component);
+
+      cmp.calledOnce.should.be.true;
+      cmp.args[0][0].should.be.deep.equal({ 1: 1, 2: 2, three: '3', params: { test: 1 } });
+    });
+
+    it('should allow to disable properties merge', () => {
+      const cmp = sinon.stub().returns(null);
+
+      const Wrapped = resolver({
+        1: () => 1,
+        2: () => 2
+      }, undefined, undefined, {
+        mergeOwnProps: false
+      })(cmp);
+      const store = makeStore();
+
+      const component = (
+        <Provider store={store}>
+          <Wrapped params={{ test: 1 }} three="3" />
+        </Provider>
+      );
+
+      TestUtils.renderIntoDocument(component);
+
+      cmp.calledOnce.should.be.true;
+      cmp.args[0][0].should.be.deep.equal({ 1: 1, 2: 2 });
+    });
+
+    it('should allow to pass custom properties merge', () => {
+      const cmp = sinon.stub().returns(null);
+      const mergeOwnProps = sinon.stub().returns({ 1: 3 });
+
+      const Wrapped = resolver({
+        1: () => 1,
+        2: () => 2
+      }, undefined, undefined, {
+        mergeOwnProps
+      })(cmp);
+      const store = makeStore();
+
+      const component = (
+        <Provider store={store}>
+          <Wrapped params={{ test: 1 }} three="3" />
+        </Provider>
+      );
+
+      TestUtils.renderIntoDocument(component);
+
+      cmp.calledOnce.should.be.true;
+      cmp.args[0][0].should.be.deep.equal({ 1: 3 });
+
+      mergeOwnProps.calledTwice.should.be.true; // resolving & resolved
+      const [result, ownProps] = mergeOwnProps.args[1];
+
+      result.should.be.deep.equal({
+        1: 1,
+        2: 2
+      });
+
+      ownProps.should.contain({
+        three: '3',
+        resolved: true,
+        pending: false,
+        rejected: false
+      });
     });
   });
 
@@ -383,6 +477,12 @@ describe('Resolver', () => {
 
     it('should throw when options is not an object', () => {
       expect(() => resolver({}, undefined, undefined, 5)).to.throw(/options/);
+    });
+
+    it('should throw when mergeOwnProps is not a function or boolean', () => {
+      expect(() => resolver({}, undefined, undefined, {
+        mergeOwnProps: 'test'
+      })).to.throw(/mergeOwnProps/);
     });
   });
 

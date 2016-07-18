@@ -1,6 +1,6 @@
 {
   "name": "react-redux-universal-resolver",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Yet another redux based HOC to support universal async rendering.",
   "main": "./lib/index.js",
   "scripts": {

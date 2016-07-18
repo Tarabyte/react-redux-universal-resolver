@@ -13,7 +13,8 @@ const defaultMapRouteToParams = (state, routeProps) => routeProps.params;
 const isObject = test => test && typeof test === 'object' && !Array.isArray(test);
 const defaultOptions = {
   pure: true,
-  hoistNonReactStatics: true
+  hoistNonReactStatics: true,
+  mergeOwnProps: true
 };
 const defaultSlice = state => state.resolver;
 const extract = value => {
@@ -44,6 +45,62 @@ const makeMapParamsToPromises = hash => {
   return params => promiseThunks.reduce((acc, thunk) => thunk(acc, params), {});
 };
 
+const propTypes = {
+  /**
+   * Params required to compose promises to resolve.
+   * For example current instance id to fetch that comes from router params
+   */
+  resolveParams: any.isRequired,
+
+  /**
+   * Wheater all promises are resolved
+   */
+  resolved: bool.isRequired,
+
+  /**
+   * If any promise is still pending
+   */
+  pending: bool.isRequired,
+
+  /**
+   * If any promise were rejected
+   */
+  rejected: bool.isRequired,
+
+  /**
+   * Hash of promises result
+   */
+  result: object,
+
+  /**
+   * Redux store dispatch
+   */
+  dispatch: func.isRequired
+};
+
+const omitKnownProps = props => Object.keys(props).reduce((acc, prop) => {
+  if (!(prop in propTypes)) {
+    // eslint-disable-next-line no-param-reassign
+    acc[prop] = props[prop];
+  }
+
+  return acc;
+}, {});
+
+const makePropertyMerger = merge => {
+  if (merge === false) {
+    return result => result;
+  }
+  if (merge === true) {
+    return (result, props) => ({
+      ...omitKnownProps(props),
+      ...result
+    });
+  }
+
+  return merge;
+};
+
 export default (mapParamsToPromises,
                 mapStateToParams = defaultMapStateToParams,
                 mapRouteToParams = defaultMapRouteToParams,
@@ -63,7 +120,14 @@ export default (mapParamsToPromises,
   invariant(isObject(options),
     'Expecting options to be an object. Got %s instead.', options);
 
+  invariant(
+    ['undefined', 'boolean', 'function'].indexOf(typeof options.mergeOwnProps) > -1,
+    'Expecting options.mergeOwnProps to be either boolean or function. Got %s instead.',
+    typeof options.mergeOwnProps
+  );
+
   const finalOptions = { ...defaultOptions, ...options };
+
 
   return (Fulfilled, Rejected, Pending) => {
     const keys = Object.keys(mapParamsToPromises);
@@ -122,42 +186,13 @@ export default (mapParamsToPromises,
       return Promise.all(pending);
     };
 
-    const { pure, hoistNonReactStatics } = finalOptions;
+    const { pure, hoistNonReactStatics, mergeOwnProps } = finalOptions;
+
     const impure = !pure;
+    const mergeProperties = makePropertyMerger(mergeOwnProps);
 
     class Resolver extends Component {
-      static propTypes = {
-        /**
-         * Params required to compose promises to resolve.
-         * For example current instance id to fetch that comes from router params
-         */
-        resolveParams: any.isRequired,
-
-        /**
-         * Wheater all promises are resolved
-         */
-        resolved: bool.isRequired,
-
-        /**
-         * If any promise is still pending
-         */
-        pending: bool.isRequired,
-
-        /**
-         * If any promise were rejected
-         */
-        rejected: bool.isRequired,
-
-        /**
-         * Hash of promises result
-         */
-        result: object,
-
-        /**
-         * Redux store dispatch
-         */
-        dispatch: func.isRequired
-      };
+      static propTypes = propTypes;
 
       static resolveOnServer(state, routeProps, dispatch) {
         invariant(typeof dispatch === 'function',
@@ -195,12 +230,14 @@ export default (mapParamsToPromises,
           result
         } = this.props;
 
+        const props = mergeProperties(result, this.props);
+
         if (pending && Pending) {
           return <Pending />;
         } else if (rejected && Rejected) {
-          return <Rejected {...result} />;
+          return <Rejected {...props} />;
         } else if (resolved) {
-          return <Fulfilled {...result} />;
+          return <Fulfilled {...props} />;
         }
 
         return null;
