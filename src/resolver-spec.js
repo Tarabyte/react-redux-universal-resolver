@@ -454,6 +454,62 @@ describe('Resolver', () => {
     });
   });
 
+  describe('Rerender when own props changed', () => {
+    it('should rerender when props changed', done => {
+      const cmp = sinon.stub().returns(null);
+
+      const Wrapped = resolver({
+        1: () => 1,
+        2: () => 2
+      })(cmp);
+
+      // eslint-disable-next-line react/no-multi-comp
+      class StatefullWrapper extends Component {
+        constructor(props) {
+          super(props);
+          this.state = {
+            counter: 0
+          };
+
+          this.inc = this.inc.bind(this);
+        }
+
+        inc(cont) {
+          this.setState({
+            counter: this.state.counter + 1
+          }, cont);
+        }
+
+        render() {
+          return <Wrapped params={{ test: 1 }} three={this.state.counter} />;
+        }
+      }
+
+      const store = makeStore();
+
+      const component = (
+        <Provider store={store}>
+          <StatefullWrapper />
+        </Provider>
+      );
+
+      const tree = TestUtils.renderIntoDocument(component);
+
+      const statefull = TestUtils.findRenderedComponentWithType(tree, StatefullWrapper);
+
+
+      statefull.inc(() => {
+        cmp.calledTwice.should.be.true;
+        const [[first], [second]] = cmp.args;
+
+
+        first.should.have.property('three', 0);
+        second.should.have.property('three', 1);
+        done();
+      });
+    });
+  });
+
   describe('Invariants', () => {
     it('should throw when called w/o mapParamsToPromises', () => {
       expect(() => resolver()).to.throw(/mapParamsToPromises/);

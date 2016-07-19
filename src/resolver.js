@@ -219,7 +219,12 @@ export default (mapParamsToPromises,
       }
 
       shouldComponentUpdate(nextProps) {
-        return impure || this.props.pending !== nextProps.pending;
+        return impure // always rerender
+          || this.props.pending !== nextProps.pending // state changed
+          || !shallowequal( // own properties changed (w/o result)
+              mergeProperties({}, this.props),
+              mergeProperties({}, nextProps)
+            );
       }
 
       render() {
