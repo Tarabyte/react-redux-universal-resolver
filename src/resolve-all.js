@@ -6,7 +6,7 @@ export default (components, ...args) => {
     'Expecting components array or single components. Got %s instead.', components);
 
   const pending = flatten(components)
-    .filter(component => typeof component.resolveOnServer === 'function')
+    .filter(component => component != null && typeof component.resolveOnServer === 'function')
     .map(component => component.resolveOnServer(...args));
 
   return Promise.all(pending);

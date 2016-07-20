@@ -57,5 +57,13 @@ describe('Resolve All', () => {
       res2.should.be.equal(2);
     });
   });
+
+  it('should filter out null and undefined components in array', () => {
+    resolveAll([null, undefined]).should.be.ok;
+  });
+
+  it('should filter out null and undefined components in object', () => {
+    resolveAll({main: null, aside: undefined}).should.be.ok;
+  });
 });
 
